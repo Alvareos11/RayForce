@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.10)
 project(RayForce)
 
+# 0. OUTPUT CONFIGURATION
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+
 # 1. BUILD CONFIGURATION
 # Default to Release mode if no build type is specified for maximum performance
 if(NOT CMAKE_BUILD_TYPE)
@@ -25,7 +28,7 @@ add_definitions(-DDONT_USE_CUDA)
 
 # 2. DEPENDENCY DISCOVERY
 # Attempt to find Raylib via the system's CMake package registry
-find_package(raylib 4.0 QUIET) 
+find_package(raylib 5.5 QUIET) 
 
 # 3. PHYSX PATH CONFIGURATION
 # Allows users to pass a custom path via: cmake -DPHYSX_PATH=/custom/path ..
