@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
-project(BrickBattle)
+project(RayForce)
 
-# 1. OPTIMIZACIÓN AGRESIVA PARA RASPBERRY PI 5
-# Forzamos modo Release si no se especifica
+# 1. BUILD CONFIGURATION
+# Default to Release mode if no build type is specified for maximum performance
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
@@ -10,56 +10,64 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Banderas específicas para el procesador de la Pi 5 (Cortex-A76)
+# Optimization Flags for Linux (x86 and ARM compatible)
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
-    # -O3: Máxima optimización de velocidad
-    # -ffast-math: Acelera cálculos matemáticos (vital para físicas)
-    # -fno-common: Mejora el acceso a variables globales
-    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math -fno-common")
+    # -O3 and -ffast-math provide high-performance math optimizations
+    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -ffast-math")
     add_definitions(-DNDEBUG)
-    message(STATUS "Optimizaciones de Raspberry Pi 5 ACTIVADAS")
 else()
+    set(CMAKE_CXX_FLAGS_DEBUG "-g")
     add_definitions(-D_DEBUG)
 endif()
 
+# Disable CUDA if building for non-NVIDIA systems or general Linux compatibility
 add_definitions(-DDONT_USE_CUDA)
 
-# 2. Rutas de PhysX
-set(PHYSX_INCLUDE_DIR "/usr/local/include")
-set(PHYSX_LIB_DIR "/usr/local/lib")
+# 2. DEPENDENCY DISCOVERY
+# Attempt to find Raylib via the system's CMake package registry
+find_package(raylib 4.0 QUIET) 
 
-# 3. Búsqueda de código
+# 3. PHYSX PATH CONFIGURATION
+# Allows users to pass a custom path via: cmake -DPHYSX_PATH=/custom/path ..
+if(NOT PHYSX_PATH)
+    set(PHYSX_PATH "/usr/local")
+endif()
+
+set(PHYSX_INCLUDE_DIR "${PHYSX_PATH}/include")
+set(PHYSX_LIB_DIR "${PHYSX_PATH}/lib")
+
+# 4. SOURCE CODE DISCOVERY
+# Recursively find all C++ files within the src directory
 file(GLOB_RECURSE SOURCES "src/*.cpp")
 
-# 4. Definir el ejecutable
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR})
-add_executable(BrickBattle ${SOURCES})
+# 5. EXECUTABLE DEFINITION
+add_executable(${PROJECT_NAME} ${SOURCES})
 
-# 5. Includes
-target_include_directories(BrickBattle PUBLIC 
+# 6. INCLUDE DIRECTORIES
+target_include_directories(${PROJECT_NAME} PUBLIC 
     ${PHYSX_INCLUDE_DIR}
     "${PHYSX_INCLUDE_DIR}/physx"
     "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
 
-# 6. ENLACE DE LIBRERÍAS (Orden optimizado para GCC)
-# En Linux, el orden de las librerías estáticas es de vida o muerte
-target_link_libraries(BrickBattle
-    # Raylib y Gráficos
-    raylib
-    GL
-    X11
+# 7. LIBRARY LINKING (Linux Structure)
+# Note: Link order for PhysX is critical for GCC/Clang to resolve symbols correctly.
+target_link_libraries(${PROJECT_NAME}
+    # System Dependencies
+    m          # Math library
+    pthread    # Multithreading support
+    dl         # Dynamic linking
+    rt         # Real-time extensions
+    GL         # OpenGL
+    X11        # Windowing system
     
-    # PhysX (Orden de dependencia: de más complejo a base)
-    ${PHYSX_LIB_DIR}/libPhysXExtensions_static_64.a
-    ${PHYSX_LIB_DIR}/libPhysXCooking_static_64.a
-    ${PHYSX_LIB_DIR}/libPhysX_static_64.a
-    ${PHYSX_LIB_DIR}/libPhysXCommon_static_64.a
-    ${PHYSX_LIB_DIR}/libPhysXFoundation_static_64.a
+    # Visual Framework
+    raylib
 
-    # Sistema (Siempre al final para resolver símbolos de las anteriores)
-    m
-    pthread
-    dl
-    rt
+    # NVIDIA PhysX Static Libraries
+    "${PHYSX_LIB_DIR}/libPhysXExtensions_static_64.a"
+    "${PHYSX_LIB_DIR}/libPhysXCooking_static_64.a"
+    "${PHYSX_LIB_DIR}/libPhysX_static_64.a"
+    "${PHYSX_LIB_DIR}/libPhysXCommon_static_64.a"
+    "${PHYSX_LIB_DIR}/libPhysXFoundation_static_64.a"
 )
