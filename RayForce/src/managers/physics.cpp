@@ -38,10 +38,10 @@ PhysicsManager::PhysicsManager() {
         SceneDesc->cudaContextManager = CudaContextManager;
         SceneDesc->flags |= PxSceneFlag::eENABLE_GPU_DYNAMICS;
         SceneDesc->broadPhaseType = PxBroadPhaseType::eGPU;
-        TraceLog(LOG_INFO, "PHYSICS: GPU Acceleration initialized successfully via CUDA.");
+        RF_LOG_INFO("GPU Acceleration initialized successfully via CUDA.");
     }
     else {
-        TraceLog(LOG_WARNING, "PHYSICS: CUDA not detected. Falling back to CPU simulation.");
+        RF_LOG_WARN("CUDA not detected.Falling back to CPU simulation.");
     }
 #endif
 
@@ -111,7 +111,7 @@ PxMaterial* PhysicsManager::GetMaterial(MaterialID id) {
     PxMaterial* material = Physics->createMaterial(props.x, props.y, props.z);
 
     loadedMaterials[id] = material;
-    TraceLog(LOG_INFO, "PHYSICS: Loaded material ID %d", static_cast<uint16_t>(id));
+    RF_LOG_INFO("Loaded material ID %d", static_cast<uint16_t>(id));
     return material;
 }
 
@@ -139,7 +139,7 @@ PxGeometry* PhysicsManager::CreateGeometry(uint16_t _modelID) {
         for (int v = 0; v < m.vertexCount * 3; v++) allVertices.push_back(m.vertices[v]);
     }
 
-    TraceLog(LOG_INFO, "PHYSICS: Cooking Convex Mesh for Model ID %d", _modelID);
+    RF_LOG_INFO("Cooking Convex Mesh for Model ID %d", _modelID);
 
     // Setup Convex Hull descriptor
     PxConvexMeshDesc convexDesc;
@@ -152,7 +152,7 @@ PxGeometry* PhysicsManager::CreateGeometry(uint16_t _modelID) {
     PxConvexMeshCookingResult::Enum result;
 
     if (!Cooking->cookConvexMesh(convexDesc, writeBuffer, &result)) {
-        TraceLog(LOG_WARNING, "PHYSICS: Cooking failed with code: %d", (int)result);
+        RF_LOG_ERROR("Cooking failed with code: %d", (int)result);
         return nullptr;
     }
 
@@ -173,7 +173,10 @@ void PhysicsManager::UnloadGeometry(uint16_t _modelID) {
 }
 
 void PhysicsManager::DeleteGeometry(PxGeometry* geo) {
-    if (!geo) return;
+    if (!geo) {
+        RF_LOG_WARN("Called with null Geometry");
+        return; 
+    }
 
     // Release internal cooked mesh data based on geometry type
     if (geo->getType() == PxGeometryType::eTRIANGLEMESH) {

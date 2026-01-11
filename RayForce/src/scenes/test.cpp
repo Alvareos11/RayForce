@@ -13,8 +13,8 @@ int gridSize = 1;
 void Test::Init() {
     DisableCursor(); // Locks mouse for 3D camera control
 
-    TraceLog(LOG_INFO, "Initializing Test Scene");
-    TraceLog(LOG_INFO, "Creating %d entities", gridSize * gridSize * gridSize);
+    RF_LOG_INFO("Initializing Test Scene");
+    RF_LOG_INFO("Creating %d entities", gridSize * gridSize * gridSize);
 
     // Triple nested loop to spawn a 3D grid of physical objects
     for (int i = 0; i < gridSize; i++) {
@@ -32,7 +32,7 @@ void Test::Init() {
         }
     }
 
-    TraceLog(LOG_INFO, "Finished creating entities.");
+    RF_LOG_INFO("Finished creating entities.");
 }
 
 bool toggleMouse = false;
@@ -50,7 +50,7 @@ void Test::Tick() {
     // Hot Reloading: Restarts the scene with more or fewer entities
     if (IsKeyPressed(KEY_R)) {
         LoadScene(new Test());
-        TraceLog(LOG_INFO, "Reloading Test Scene");
+        RF_LOG_INFO("Reloading Test Scene");
 
         if (IsKeyDown(KEY_LEFT_SHIFT)) {
             gridSize -= (gridSize - 1 == 0) ? 0 : 1; // Minimum size of 1

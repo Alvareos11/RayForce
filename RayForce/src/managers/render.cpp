@@ -17,7 +17,7 @@ RenderManager::~RenderManager() {
  */
 void RenderManager::AddModelToRenderBuffer(Model* model, Matrix t) {
     if (model == nullptr) {
-        TraceLog(LOG_WARNING, "Model pointer was null in RenderManager::AddModelToRenderBuffer");
+        RF_LOG_ERROR("Model pointer was null");
         return;
     }
 

@@ -31,7 +31,7 @@ using namespace physx;
 
 // Logging Macros
 #define RF_LOG_ERROR(msg, ...) \
-    TraceLog(LOG_ERROR, "[RayForce] [%s:%d] " msg, __FILE__, __LINE__, ##__VA_ARGS__)
+    TraceLog(LOG_ERROR, "[RayForce] [%s:%d]" msg, __FILE__, __LINE__, ##__VA_ARGS__)
 
 #define RF_LOG_WARN(msg, ...) \
     TraceLog(LOG_WARNING, "[RayForce] [%s:%d] " msg, __FILE__, __LINE__, ##__VA_ARGS__)

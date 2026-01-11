@@ -103,7 +103,7 @@ void Entity::Render() {
  */
 void Entity::SetHitbox(PxGeometry* pgeometry) {
     if (pgeometry == nullptr) {
-        TraceLog(LOG_WARNING, "Entity::SetHitbox called with null geometry.");
+        RF_LOG_WARN("Called with null geometry");
         return;
     }
 

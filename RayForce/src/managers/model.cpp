@@ -8,7 +8,7 @@ ModelManager::ModelManager() {
         (SAHDERS_PATH + std::string("basic.fs")).c_str());
 
     if (!IsShaderValid(shdr)) {
-        TraceLog(LOG_ERROR, "Fatal Error! Shaders failed to load.");
+       RF_LOG_ERROR("Shaders failed to load.");
         return;
     }
 
@@ -36,14 +36,14 @@ Model& ModelManager::GetModel(ModelID id) {
     Model model;
 
     if (!FileExists(path.c_str())) {
-        TraceLog(LOG_ERROR, "File not found: %s", path.c_str());
+        RF_LOG_ERROR("File not found: %s", path.c_str());
         goto error;
     }
 
     model = ::LoadModel(path.c_str());
 
     if (model.meshes == nullptr) {
-        TraceLog(LOG_ERROR, "Failed to load mesh data for: %s", path.c_str());
+        RF_LOG_ERROR("Failed to load mesh data for: %s", path.c_str());
         goto error;
     }
 
@@ -68,7 +68,7 @@ done:
 void ModelManager::UnloadModel(ModelID id) {
     auto it = models.find(id);
     if (it == models.end()) {
-        TraceLog(LOG_WARNING, "Model ID %d not found in cache", id);
+        RF_LOG_WARN("Model ID %d not found in cache", id);
         return;
     }
     // Raylib's internal mesh/material cleanup would happen here if needed
