@@ -4,188 +4,142 @@
 #include "../managers/physics.h"
 #include "../managers/render.h"
 
+/**
+ * Entity Constructor
+ * Links the entity to its visual resource via the ModelManager.
+ */
 Entity::Entity(Vector3 pos, ModelID _modelID) : position(pos), modelID(_modelID) {
-	model = &Window::modelManager->GetModel(modelID);
+    model = &Window::modelManager->GetModel(modelID);
 }
 
+/**
+ * Entity Destructor
+ * Ensures the physical actor is removed from the PhysX simulation to prevent leaks.
+ */
 Entity::~Entity() {
-	hitbox->release();
-	hitbox = nullptr;
+    if (hitbox) {
+        hitbox->release();
+        hitbox = nullptr;
+    }
 }
 
-
-/*
+/**
+ * PhysicsUpdate
+ * Pulls the latest simulation results from PhysX and translates them into Raylib data.
+ */
 void Entity::PhysicsUpdate() {
-	if (hitbox) {
-		// Obtenemos la pose de PhysX
-		PxTransform transform = hitbox->getGlobalPose();
+    if (hitbox != nullptr) {
+        // Retrieve the global transform from the PhysX actor
+        PxTransform transform = hitbox->getGlobalPose();
 
-		// Sincronizamos posición básica para tu lógica de C++
-		position = { transform.p.x, transform.p.y, transform.p.z };
-		rotationQuat = { transform.q.x, transform.q.y, transform.q.z, transform.q.w };
+        // 1. Sync Position and Orientation (Quaternion)
+        position = { transform.p.x, transform.p.y, transform.p.z };
+        rotationQuat = { transform.q.x, transform.q.y, transform.q.z, transform.q.w };
 
-		// Quaterion a Euler
-		Vector3 eulerRadianes = QuaternionToEuler(rotationQuat);
+        // 2. Convert Quaternion to Euler angles (Degrees) for high-level logic
+        Vector3 eulerRadians = QuaternionToEuler(rotationQuat);
+        rotation.x = eulerRadians.x * RAD2DEG;
+        rotation.y = eulerRadians.y * RAD2DEG;
+        rotation.z = eulerRadians.z * RAD2DEG;
 
-		// Convertimos a grados para que tu variable 'rotation' sea fácil de usar
-		rotation.x = eulerRadianes.x * RAD2DEG;
-		rotation.y = eulerRadianes.y * RAD2DEG;
-		rotation.z = eulerRadianes.z * RAD2DEG;
+        // 3. Convert PhysX 4x4 Matrix to Raylib Matrix for efficient rendering
+        PxMat44 physxMat(transform);
 
-		// Sincronizamos velocidad (solo si la necesitas para lógica)
-		PxVec3 v = hitbox->getLinearVelocity();
-		velocity = { v.x, v.y, v.z };
-	}
-}
-*/
+        // Map column-major PhysX matrix to Raylib's worldMatrix structure
+        // Rotation and Scaling (3x3 Block)
+        worldMatrix.m0 = physxMat.column0.x;
+        worldMatrix.m1 = physxMat.column0.y;
+        worldMatrix.m2 = physxMat.column0.z;
+        worldMatrix.m3 = physxMat.column0.w;
 
+        worldMatrix.m4 = physxMat.column1.x;
+        worldMatrix.m5 = physxMat.column1.y;
+        worldMatrix.m6 = physxMat.column1.z;
+        worldMatrix.m7 = physxMat.column1.w;
 
-void Entity::PhysicsUpdate() {
-	if (hitbox != nullptr) {
-		PxTransform transform = hitbox->getGlobalPose();
+        worldMatrix.m8 = physxMat.column2.x;
+        worldMatrix.m9 = physxMat.column2.y;
+        worldMatrix.m10 = physxMat.column2.z;
+        worldMatrix.m11 = physxMat.column2.w;
 
-		// 1. Guardar posición y cuaternión
-		position = { transform.p.x, transform.p.y, transform.p.z };
-		rotationQuat = { transform.q.x, transform.q.y, transform.q.z, transform.q.w };
+        // Translation/Position
+        worldMatrix.m12 = physxMat.column3.x;
+        worldMatrix.m13 = physxMat.column3.y;
+        worldMatrix.m14 = physxMat.column3.z;
+        worldMatrix.m15 = 1.0f; // Homogeneous coordinates
 
-		// 2. OBTENER ÁNGULOS EULER REALES
-		// QuaternionToEuler devuelve radianes, multiplicamos por RAD2DEG para grados
-		Vector3 eulerRadianes = QuaternionToEuler(rotationQuat);
-		rotation.x = eulerRadianes.x * RAD2DEG;
-		rotation.y = eulerRadianes.y * RAD2DEG;
-		rotation.z = eulerRadianes.z * RAD2DEG;
-
-		// 3. Mantener la matriz para el renderizado eficiente
-		PxMat44 physxMat(transform);
-
-		//if (GetRandomValue(0, 10000) == 1) std::cout << "Pos: " << physxMat.column3.x << ", " << physxMat.column3.y << ", " << physxMat.column3.z << "\n";
-
-		// 4. Convertir a Matrix de Raylib
-		//memcpy(&worldMatrix, &physxMat, sizeof(Matrix));
-		
-		// --- ROTACIÓN Y ESCALA (Bloque 3x3) ---
-		worldMatrix.m0 = physxMat.column0.x;
-		worldMatrix.m1 = physxMat.column0.y;
-		worldMatrix.m2 = physxMat.column0.z;
-		worldMatrix.m3 = physxMat.column0.w;
-
-		worldMatrix.m4 = physxMat.column1.x;
-		worldMatrix.m5 = physxMat.column1.y;
-		worldMatrix.m6 = physxMat.column1.z;
-		worldMatrix.m7 = physxMat.column1.w;
-
-		worldMatrix.m8 = physxMat.column2.x;
-		worldMatrix.m9 = physxMat.column2.y;
-		worldMatrix.m10 = physxMat.column2.z;
-		worldMatrix.m11 = physxMat.column2.w;
-
-		// Posicíon
-		worldMatrix.m12 = physxMat.column3.x;
-		worldMatrix.m13 = physxMat.column3.y;
-		worldMatrix.m14 = physxMat.column3.z;
-		worldMatrix.m15 = 1.0f; // Factor homogéneo (siempre 1)
-
-		// Velocidad
-		PxVec3 v = hitbox->getLinearVelocity();
-		velocity = {v.x, v.y, v.z};
-	}
+        // Sync Velocity for AI or game logic usage
+        PxVec3 v = hitbox->getLinearVelocity();
+        velocity = { v.x, v.y, v.z };
+    }
 }
 
-
+/**
+ * Sync
+ * Manual synchronization from the Entity properties to the PhysX Actor.
+ * Useful for teleporting or resetting object states.
+ */
 void Entity::Sync() {
-	if (hitbox != nullptr) {
-		PxQuat q = { rotationQuat.x, rotationQuat.y, rotationQuat.z, rotationQuat.w };
-		hitbox->setGlobalPose(PxTransform(PxVec3(position.x, position.y, position.z), {q}));
-		//hitbox->setGlobalPose(PxTransform(PxVec3(position.x, position.y, position.z), PxQuat(PxIdentity)));
-		hitbox->setLinearVelocity(PxVec3(velocity.x, velocity.y, velocity.z));
-	}
+    if (hitbox != nullptr) {
+        PxQuat q = { rotationQuat.x, rotationQuat.y, rotationQuat.z, rotationQuat.w };
+        hitbox->setGlobalPose(PxTransform(PxVec3(position.x, position.y, position.z), { q }));
+        hitbox->setLinearVelocity(PxVec3(velocity.x, velocity.y, velocity.z));
+    }
 }
 
-
+/**
+ * Render
+ * Submits the current world matrix to the RenderManager for Hardware Instancing.
+ */
 void Entity::Render() {
-	if (model) {
-		/*// Guardamos la matriz original del modelo
-		Matrix old = model->transform;
-
-		// El orden de multiplicación en Raylib es: Escala * Rotación/Posición
-		//Matrix t = MatrixMultiply(scaleMat, worldMatrix);
-		Matrix t = worldMatrix;
-		model->transform = t;
-
-		if (GetRandomValue(0, 10000) == 1) std::cout << "Pos: " << t.m12 << ", " << t.m13 << ", " << t.m14 << "\n";
-
-
-		// Dibujamos en 0,0,0 porque la matriz ya dice dónde está el objeto en el mundo
-		DrawModel(*model, { 0, 0, 0 }, 1.0f, RED);
-
-		// Restauramos la matriz original del modelo
-		model->transform = old;
-
-		*/
-		Window::renderManager->AddModelToRenderBuffer(model, worldMatrix);
-	}
-
-	/*
-	if (hitbox != nullptr) {
-		Vector3	axis;
-		float angle;
-
-		QuaternionToAxisAngle(rotationQuat, &axis, &angle);
-
-		DrawModelWiresEx(*model, position, axis, angle, scale, RED);
-	}
-	*/
+    if (model) {
+        Window::renderManager->AddModelToRenderBuffer(model, worldMatrix);
+    }
 }
 
-/*
-void Entity::Render() {
-	if (model) {
-		Vector3 axis = { rotationQuat.x, rotationQuat.y, rotationQuat.z };
-		float angle = rotationQuat.w * RAD2DEG;
-
-		DrawModelEx(*model, position, axis, angle, scale, WHITE);
-	}
-*/
-
+/**
+ * SetHitbox
+ * Creates a physical body (RigidDynamic) and attaches it to the entity.
+ */
 void Entity::SetHitbox(PxGeometry* pgeometry) {
-	if (pgeometry == nullptr) { 
-		TraceLog(LOG_WARNING, "Entity::SetHitbox called with null geometry.");
-		return; 
-	}
+    if (pgeometry == nullptr) {
+        TraceLog(LOG_WARNING, "Entity::SetHitbox called with null geometry.");
+        return;
+    }
 
-	PxGeometry& geometry = *pgeometry;
-	// 1. Asegurar valores iniciales VÁLIDOS en la clase Entity
-	if (!std::isfinite(position.x)) position = { 0, 0, 0 };
-	if (mass <= 0.0f) mass = 1.0f;
+    PxGeometry& geometry = *pgeometry;
 
-	// 2. Crear el actor con un Transform limpio (Identidad)
-	PxTransform safeTransform(PxVec3(position.x, position.y, position.z));
+    // 1. Validate initial state
+    if (!std::isfinite(position.x)) position = { 0, 0, 0 };
+    if (mass <= 0.0f) mass = 1.0f;
 
-	// Forzamos que el cuaternión sea 0,0,0,1 (Identidad) para evitar el #DEN
-	safeTransform.q = PxQuat(PxIdentity);
+    // 2. Initialize Actor with current position and Identity rotation
+    PxTransform initialTransform(PxVec3(position.x, position.y, position.z));
+    initialTransform.q = PxQuat(PxIdentity);
 
-	if (hitbox == nullptr) {
-		hitbox = Window::physicsManager->Physics->createRigidDynamic(safeTransform);
-		hitbox->userData = (void*)this;
-	}
+    if (hitbox == nullptr) {
+        hitbox = Window::physicsManager->Physics->createRigidDynamic(initialTransform);
+        // Link the PhysX actor back to this instance for collision callbacks
+        hitbox->userData = (void*)this;
+    }
 
-	// 3. Crear Shape y Material
-	PxMaterial* material = Window::modelManager->GetModelMaterial(modelID);
-	
-	PxShape* shape = PxRigidActorExt::createExclusiveShape(*hitbox, geometry, *material);
+    // 3. Create Shape and Material
+    PxMaterial* material = Window::modelManager->GetModelMaterial(modelID);
+    PxShape* shape = PxRigidActorExt::createExclusiveShape(*hitbox, geometry, *material);
 
-	shape->setContactOffset(0.02f); // Un margen de 2cm para cálculos de colisión
-	shape->setRestOffset(0.0f);     // Distancia de reposo
+    // Fine-tune collision offsets for stability
+    shape->setContactOffset(0.02f);
+    shape->setRestOffset(0.0f);
 
-	// 4. EL TRUCO: Primero calcula la masa y LUEGO limpia las velocidades
-	PxRigidBodyExt::setMassAndUpdateInertia(*hitbox, mass);
+    // 4. Finalize physical properties
+    PxRigidBodyExt::setMassAndUpdateInertia(*hitbox, mass);
+    hitbox->setLinearVelocity(PxVec3(0));
+    hitbox->setAngularVelocity(PxVec3(0));
 
-	hitbox->setLinearVelocity(PxVec3(0));
-	hitbox->setAngularVelocity(PxVec3(0));
-
-	hitbox->setSleepThreshold(0.2f);
+    // Performance: Object will stop calculating when movement is minimal
+    hitbox->setSleepThreshold(0.2f);
 }
 
 void Entity::Update() {
-
+    // Virtual method - intended for override in child classes
 }
