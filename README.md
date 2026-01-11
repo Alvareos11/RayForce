@@ -1,5 +1,8 @@
 # RayForce
 
+## Description
+Rayforce is a lightweight 3d physics game engine, with the purpose of having the maximum performance.
+
 ## Acknowledgments and Legal Notices
 
 **RayForce** is an open-source project that integrates third-party technologies. By using this software, you acknowledge and agree to the license terms of the following components:
@@ -18,3 +21,8 @@ This project uses **raylib** for window management and rendering.
 ## License
 **RayForce** is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. 
 Copyright © 2026 [Your Name].
+
+### glTF Sample Models
+This project uses 3D models from the [glTF Sample Models](https://github.com/KhronosGroup/glTF-Sample-Models) repository by Khronos Group.
+- These models are used for testing and demonstration purposes.
+- Licensed under [CC-BY 4.0](https://creativecommons.org/licenses/by/4.0/).
