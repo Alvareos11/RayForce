@@ -1,6 +1,6 @@
 #include "physics.h"
 #include "model.h"
-#include "../window.h"
+#include "window.h"
 
 // Static members for PhysX SDK communication
 PxDefaultAllocator PhysicsManager::Allocator;
@@ -26,7 +26,6 @@ PhysicsManager::PhysicsManager() {
 
     // Enables 'Active Actor' tracking to only sync entities that moved during the last step.
     SceneDesc->flags |= PxSceneFlag::eENABLE_ACTIVE_ACTORS;
-    SceneDesc->flags |= PxSceneFlag::eADAPTIVE_FORCE;
 
 #if !defined(DONT_USE_CUDA)
     // 3. GPU Hardware Acceleration (CUDA)
@@ -53,12 +52,11 @@ PhysicsManager::PhysicsManager() {
 
     // 5. Cooking Module Setup
     // Configures mesh preprocessing (welding vertices and generating convex hulls).
-    PxCookingParams params(Physics->getTolerancesScale());
-    params.meshPreprocessParams |= PxMeshPreprocessingFlag::eWELD_VERTICES;
-    params.meshWeldTolerance = 0.001f;
-    params.meshPreprocessParams |= PxMeshPreprocessingFlag::eFORCE_32BIT_INDICES;
-
-    Cooking = PxCreateCooking(PX_PHYSICS_VERSION, *Foundation, params);
+    CookingParams = new PxCookingParams(Physics->getTolerancesScale());
+    CookingParams->meshPreprocessParams |= PxMeshPreprocessingFlag::eWELD_VERTICES;
+    CookingParams->meshWeldTolerance = 0.001f;
+    CookingParams->meshPreprocessParams |= PxMeshPreprocessingFlag::eFORCE_32BIT_INDICES;
+    CookingParams->midphaseDesc.setToDefault(PxMeshMidPhase::eBVH34);
 }
 
 /**
@@ -78,8 +76,8 @@ PhysicsManager::~PhysicsManager() {
     for (auto& pair : loadedShapes) pair.second->release();
     loadedShapes.clear();
 
-    if (Cooking) Cooking->release();
-    if (Dispatcher) { Dispatcher->release(); Dispatcher = nullptr; }
+    if (CookingParams) { delete CookingParams ; CookingParams = nullptr; }
+    if (Dispatcher) { Dispatcher->release() ; Dispatcher = nullptr; }
 
 #if !defined(DONT_USE_CUDA)
     if (CudaContextManager) { CudaContextManager->release(); CudaContextManager = nullptr; }
@@ -151,7 +149,7 @@ PxGeometry* PhysicsManager::CreateGeometry(uint16_t _modelID) {
     PxDefaultMemoryOutputStream writeBuffer;
     PxConvexMeshCookingResult::Enum result;
 
-    if (!Cooking->cookConvexMesh(convexDesc, writeBuffer, &result)) {
+    if (!PxCookConvexMesh(*CookingParams, convexDesc, writeBuffer, &result)) {
         RF_LOG_ERROR("Cooking failed with code: %d", (int)result);
         return nullptr;
     }
@@ -219,7 +217,7 @@ void PhysicsManager::UnloadShape(PxGeometry* geometry) {
     }
 }
 
-// --- Main Engine Synchronization ---
+// --- Main Engine Synchronization --- legacy usefull but slow
 
 #include "../elements/entity.h"
 void PhysicsManager::UpdateEntities(PxScene* scene) {

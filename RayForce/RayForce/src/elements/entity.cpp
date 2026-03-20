@@ -1,8 +1,8 @@
 #include "entity.h"
-#include "../window.h"
-#include "../managers/model.h"
-#include "../managers/physics.h"
-#include "../managers/render.h"
+#include "window.h"
+#include "managers/model.h"
+#include "managers/physics.h"
+#include "managers/render.h"
 
 /**
  * Entity Constructor
@@ -51,26 +51,29 @@ void Entity::PhysicsUpdate() {
  * Useful for teleporting or resetting object states.
  */
 void Entity::Sync() {
+    PxRigidDynamic* dynamicHitbox = (PxRigidDynamic*)hitbox;
     if (hitbox != nullptr) {
         PxQuat q = { rotationQuat.x, rotationQuat.y, rotationQuat.z, rotationQuat.w };
-        hitbox->setGlobalPose(PxTransform(PxVec3(position.x, position.y, position.z), { q }));
-        hitbox->setLinearVelocity(PxVec3(velocity.x, velocity.y, velocity.z));
+        dynamicHitbox->setGlobalPose(PxTransform(PxVec3(position.x, position.y, position.z), { q }));
+        dynamicHitbox->setLinearVelocity(PxVec3(velocity.x, velocity.y, velocity.z));
     }
 }
 
 /**
- * Render
+ * UpdateMatrixRender
  * Submits the current world matrix to the RenderManager for Hardware Instancing.
  */
-void Entity::Render() {
+void Entity::UpdateMatrixRender() {
     if (model && hitbox) {
         // Get the trasnform
         transform = hitbox->getGlobalPose();
-
+        
+        /*
         // Convert PhysX 4x4 Matrix to Raylib Matrix for efficient rendering
         PxMat44 physxMat(transform);
         Matrix renderMat;
 
+        
         // Map column-major PhysX matrix to Raylib's worldMatrix structure
         // Rotation and Scaling (3x3 Block)
         renderMat.m0 = physxMat.column0.x;
@@ -93,8 +96,12 @@ void Entity::Render() {
         renderMat.m13 = physxMat.column3.y;
         renderMat.m14 = physxMat.column3.z;
         renderMat.m15 = 1.0f; // Homogeneous coordinates
-
+        
+        
         Window::renderManager->AddModelToRenderBuffer(model, renderMat);
+        */
+       
+        Window::renderManager->AddModelToRenderBuffer(model, *(Matrix*)&PxMat44(transform));
     }
 }
 
@@ -121,8 +128,20 @@ void Entity::SetHitbox(PxGeometry* pgeometry, bool make_dynamic) {
     if (hitbox == nullptr) {
 
         // Make the rigid body dynamic or static
-        if (make_dynamic) hitbox = (PxRigidDynamic*)Window::physicsManager->Physics->createRigidDynamic(initialTransform);
-        else hitbox = Window::physicsManager->Physics->createRigidDynamic(initialTransform);
+        if (make_dynamic) {
+            PxRigidDynamic* dynamicHitbox = Window::physicsManager->Physics->createRigidDynamic(initialTransform);
+            
+            // Movement properties
+            dynamicHitbox->setLinearVelocity(PxVec3(0));
+            dynamicHitbox->setAngularVelocity(PxVec3(0));
+
+            PxRigidBodyExt::setMassAndUpdateInertia(*dynamicHitbox, mass);
+            
+            hitbox = dynamicHitbox;
+        }
+        else {
+            hitbox = Window::physicsManager->Physics->createRigidDynamic(initialTransform);
+        }
         // Link the PhysX actor back to this instance for collision callbacks
         hitbox->userData = (void*)this;
     }
@@ -138,16 +157,6 @@ void Entity::SetHitbox(PxGeometry* pgeometry, bool make_dynamic) {
     // Asing the shape to the hitbox
     hitbox->attachShape(*shape);
 
-
-    // 4. Finalize physical properties
-    PxRigidBodyExt::setMassAndUpdateInertia(*hitbox, mass);
-    hitbox->setLinearVelocity(PxVec3(0));
-    hitbox->setAngularVelocity(PxVec3(0));
-
     // Performance: Object will stop calculating when movement is minimal
     if (make_dynamic) ((PxRigidDynamic*)hitbox)->setSleepThreshold(0.2f);
-}
-
-void Entity::Update() {
-    // Virtual method - intended for override in child classes
 }

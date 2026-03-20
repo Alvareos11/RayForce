@@ -1,6 +1,6 @@
 #pragma once
-#include "../globals.h"
-#include "../managers/model.h"
+#include "globals.h"
+#include "managers/model.h"
 
 /**
  * Entity Class
@@ -68,16 +68,22 @@ public:
     void Sync();
 
     /**
-     * Render
-     * And Gets the Matrix Info directly
-     * Submits the entity's current world matrix to the RenderManager's instancing buffer.
+     * UpdateMatrixRender
+     * Converts the current PhysX transform into a Raylib Matrix and submits it to the RenderManager.
+     * This is what enables hardware instancing for efficient rendering of multiple entities using the same model.
      */
-    void Render();
+    void UpdateMatrixRender();
+
+    /**
+     * Render
+     * Virtual methot for doing RayLib draw calls.
+    */
+    virtual void Render() {};
 
     /**
      * Update & Init
      * Virtual methods for specific entity logic (Input, AI, etc).
      */
-    virtual void Update();
+    virtual void Update() {};
     virtual void Init() {};
 };

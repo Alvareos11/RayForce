@@ -5,6 +5,11 @@
 
 #include <PxPhysicsAPI.h>
 
+#include <extensions/PxDefaultCpuDispatcher.h>
+#include <extensions/PxDefaultAllocator.h>
+#include <extensions/PxDefaultErrorCallback.h>
+#include <extensions/PxExtensionsAPI.h>
+
 #include <map>
 #include <unordered_map>
 #include <string>
@@ -22,11 +27,15 @@
 
 using namespace physx;
 
+#define DONT_USE_CUDA // Define this to disable CUDA support if you don't have an NVIDIA GPU or want to avoid GPU-specific code paths
 
 // File paths
 #define RESOUCES_PATH "resources/"
 #define MODELS_PATH RESOUCES_PATH "models/"
-#define SAHDERS_PATH RESOUCES_PATH "shaders/"
+#define SHADERS_PATH RESOUCES_PATH "shaders/"
+
+#define MATERIALS_LIST_PATH "resources/materials.list"
+#define MODELS_LIST_PATH "resources/models.list"
 
 
 // Logging Macros

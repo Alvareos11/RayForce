@@ -1,8 +1,8 @@
 #pragma once
 
-#include "../globals.h"
-#include "../elements/entity.h"
-#include "../window.h"
+#include "globals.h"
+#include "elements/entity.h"
+#include "window.h"
 
 class Scene {
 protected:

@@ -1,14 +1,14 @@
 #include "model.h"
 #include "physics.h"
-#include "../window.h"
+#include "window.h"
 
 ModelManager::ModelManager() {
     // Loading shaders for instanced rendering (optimized for drawing many objects)
-    shdr = LoadShader((SAHDERS_PATH + std::string("instancing.vs")).c_str(),
-        (SAHDERS_PATH + std::string("basic.fs")).c_str());
+    shdr = LoadShader((SHADERS_PATH + std::string("instancing.vs")).c_str(),
+        (SHADERS_PATH + std::string("basic.fs")).c_str());
 
-    if (!IsShaderValid(shdr)) {
-       RF_LOG_ERROR("Shaders failed to load.");
+    if (shdr.id == 0) {
+        RF_LOG_ERROR("Shaders failed to load.");
         return;
     }
 
@@ -32,6 +32,7 @@ Model& ModelManager::GetModel(ModelID id) {
         return it->second;
     }
 
+    RF_LOG_INFO("Loading model %s", modelFilepaths.at(id).c_str());
     std::string path = std::string(MODELS_PATH + modelFilepaths.at(id));
     Model model;
 

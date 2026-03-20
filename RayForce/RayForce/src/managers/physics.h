@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../globals.h"
+#include "globals.h"
 
 /**
  * MaterialID Enum
@@ -8,7 +8,7 @@
  */
 enum class MaterialID : uint16_t {
 #define MATERIAL_DEF(id, ...) id,
-#include "materials.list"
+#include MATERIALS_LIST_PATH
 #undef MATERIAL_DEF
 };
 
@@ -17,7 +17,7 @@ private:
     // Raw properties (Friction, Static Friction, Restitution) from the list
     const std::map<MaterialID, Vector3> materialsProperties = {
         #define MATERIAL_DEF(id, ...) { MaterialID::id, {__VA_ARGS__} },
-        #include "materials.list"
+        #include MATERIALS_LIST_PATH
         #undef MATERIAL_DEF
     };
 
@@ -38,7 +38,7 @@ public:
     PxFoundation* Foundation = nullptr; // SDK Root
     PxPhysics* Physics = nullptr;       // Simulation Registry
     PxDefaultCpuDispatcher* Dispatcher = nullptr; // Multithreading controller
-    PxCooking* Cooking = nullptr;       // Mesh-to-Physics collider generator
+    PxCookingParams* CookingParams = nullptr; // Mesh cooking settings
 
     PhysicsManager();
     ~PhysicsManager();

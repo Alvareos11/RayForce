@@ -6,9 +6,14 @@ Rayforce is a lightweight 3d physics game engine, with the purpose of having the
 ---
 ## Requirements & Dependencies
 
-This project relies on the following core libraries:
-* **Raylib:** Used for rendering and window management.
-* **NVIDIA PhysX:** Utilized for high-performance physics simulations.
+### System Requirements
+* **CMake:** Version 3.15 or higher
+* **C++17 Compiler:** MSVC (Visual Studio), GCC, or Clang
+* **NVIDIA PhysX SDK:** Must be pre-installed on your system
+
+### Core Libraries
+* **Raylib:** Used for rendering and window management (automatically fetched by CMake).
+* **NVIDIA PhysX:** Utilized for high-performance physics simulations (must be installed separately).
 
 ---
 ## Installation
@@ -16,38 +21,82 @@ This project relies on the following core libraries:
 To get a local copy up and running, follow these steps:
 
 ### 1. Clone the Repository
-Clone the project using Git:
-`git clone https://github.com/Alvareos11/RayForce.git`
+```bash
+git clone https://github.com/Alvareos11/RayForce.git
+cd RayForce
+```
 
-### 2. Install extern Dependencies
+### 2. Install External Dependencies
 
-**Visual Estudio 2022:**
-First open **RayForce.sln** with Visual Studio, then run the comand
-`donet restore`.
+#### Install NVIDIA PhysX SDK
+**Windows (MSVC):**
+- Download the NVIDIA PhysX SDK from the [official repository](https://github.com/NVIDIA-Omniverse/PhysX)
+- Follow the [PhysX Quick Start Guide](https://github.com/NVIDIA-Omniverse/PhysX#quick-start) for Windows
+- Install to a location (default: `C:\Program Files\NVIDIA PhysX SDK` or `/usr/local` on Linux/macOS)
+- Set the environment variable: `PHYSX_PATH=<your_physx_installation_path>`
 
-**Others IDEs:**
-Follow the installation documentation of the extern Dependencies for your OS:
-* **Raylib:** Refer to the [Raylib Wiki: Working on Platforms](https://github.com/raysan5/raylib/wiki/Working-on-Platforms) for detailed installation guides on Windows (MinGW/MSVC), Linux, and macOS.
-* **NVIDIA PhysX:** Follow the build and setup instructions in the [NVIDIA PhysX Official Repository](https://github.com/NVIDIA-Omniverse/PhysX#quick-start). You will need to compile the SDK for your specific platform to obtain the necessary libraries.
+**Linux/macOS:**
+```bash
+# Refer to NVIDIA PhysX official documentation for your OS
+# After installation, set:
+export PHYSX_PATH=/usr/local  # or your custom installation path
+```
 
-### 3. Compilation
+#### Install CMake and C++ Compiler
+**Windows:**
+- Download CMake from https://cmake.org/download/
+- Visual Studio 2022 with C++17 or higher
 
-**Visual Studio 2022** 
-Open **RayForce.sln** and the press F5.
+**Linux:**
+```bash
+sudo apt-get install cmake build-essential
+```
 
-**Cmake (Cross-Platform):**
-Run the following comands from the root directory:
-`cd RayForce`
-`mkdir build`
-`cd build`
-`cmake ..`
-`make`.
+**macOS:**
+```bash
+brew install cmake
+```
+
+### 3. Build the Project
+
+Using CMake from the root directory:
+```bash
+cd RayForce
+mkdir build
+cd build
+cmake ..
+cmake --build . --config Release
+```
+
+Alternatively, on Linux/macOS with Make:
+```bash
+cd RayForce
+mkdir build
+cd build
+cmake ..
+make
+```
 
 ---
 ### Troubleshooting
+
+**PhysX Library Not Found:**
+- Ensure PhysX SDK is properly installed
+- Set the `PHYSX_PATH` environment variable before running CMake if you don`t use any packet manager:
+  ```bash
+  # Windows
+  set PHYSX_PATH=C:\path\to\physx
+  
+  # Linux/macOS
+  export PHYSX_PATH=/path/to/physx
+  ```
+- Then reconfigure CMake: `cmake ..`
+
 **On Linux / Raspberry Pi:**
 If the engine fails to start, force the OpenGL version by running:
-`MESA_GL_VERSION_OVERRIDE=3.3 ./RayForce`
+```bash
+MESA_GL_VERSION_OVERRIDE=3.3 ./physics_demo
+```
 
 ## Acknowledgments and Legal Notices
 

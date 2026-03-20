@@ -1,5 +1,5 @@
 #include "testEntity.h"
-#include "../RayForce/RayForce.h"
+#include "RayForce.h"
 
 /**
  * Init
@@ -33,4 +33,13 @@ void TestEntity::Init() {
  */
 void TestEntity::Update() {
     // Future: Add logic for AI, interactions, or state changes here.
+}
+
+/**
+ * TestEntity::Render
+ * Optional override for custom drawing logic. We rely on instancing, so this is empty.
+ */
+void TestEntity::Render() {
+    // We use hardware instancing for rendering, so we don't need to do anything here.
+    // The Entity objects will submit their transforms to the RenderManager each frame.
 }

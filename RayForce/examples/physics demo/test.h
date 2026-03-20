@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../RayForce/RayForce.h"
+#include "RayForce.h"
 
 /**
  * Test Scene

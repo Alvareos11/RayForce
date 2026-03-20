@@ -1,5 +1,5 @@
 #pragma once
-#include "../RayForce.h"
+#include "RayForce.h"
 
 /**
  * TestEntity Class
@@ -29,4 +29,10 @@ public:
      * such as input response or AI behavior.
      */
     void Update() override;
+
+    /**
+     * Render
+     * Overrides the base Render to handle custom drawing logic.
+     */
+    void Render() override;
 };

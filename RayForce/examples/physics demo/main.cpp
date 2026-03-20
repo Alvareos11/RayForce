@@ -1,4 +1,4 @@
-#include "../RayForce.h"
+#include "RayForce.h"
 #include "test.h"
 
 int main() {

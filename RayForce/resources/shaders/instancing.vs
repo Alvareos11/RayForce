@@ -1,33 +1,45 @@
 #version 330
 
-// Input vertex attributes
+// Atributos de entrada
 in vec3 vertexPosition;
 in vec2 vertexTexCoord;
 in vec3 vertexNormal;
-//in vec4 vertexColor;      // Not required
+//in vec4 vertexTangent; // Añadido para el Broken Helmet
 
 in mat4 instanceTransform;
 
-// Input uniform values
+// Uniforms
 uniform mat4 mvp;
-uniform mat4 matNormal;
 
-// Output vertex attributes (to fragment shader)
+// Salidas al Fragment Shader
 out vec3 fragPosition;
 out vec2 fragTexCoord;
 out vec4 fragColor;
 out vec3 fragNormal;
-
-// NOTE: Add your custom variables here
+//out vec4 fragTangent; // Para el Normal Map del casco
 
 void main()
 {
-    // Send vertex attributes to fragment shader
-    fragPosition = vec3(instanceTransform*vec4(vertexPosition, 1.0));
+    // 1. Transponemos la matriz de PhysX
+    mat4 modelMat = transpose(instanceTransform);
+    modelMat[3][3] = 1.0;
+
+    // 2. Extraemos la matriz de rotación para las normales (3x3)
+    // Esto sustituye al 'uniform mat4 matNormal'
+    mat3 normalMatrix = mat3(modelMat); 
+    
+    // Si escalas los cascos de forma no uniforme, usa: 
+    // mat3 normalMatrix = transpose(inverse(mat3(modelMat)));
+
+    // 3. Enviamos datos al Fragment Shader
+    fragPosition = vec3(modelMat * vec4(vertexPosition, 1.0));
     fragTexCoord = vertexTexCoord;
     fragColor = vec4(1.0);
-    fragNormal = normalize(vec3(matNormal*vec4(vertexNormal, 1.0)));
+    
+    // Calculamos normal y tangente usando la matriz de ESTA instancia
+    fragNormal = normalize(normalMatrix * vertexNormal);
+    //fragTangent = vec4(normalize(normalMatrix * vertexTangent.xyz), vertexTangent.w);
 
-    // Calculate final vertex position, note that we multiply mvp by instanceTransform
-    gl_Position = mvp*instanceTransform*vec4(vertexPosition, 1.0);
+    // 4. Posición final
+    gl_Position = mvp * modelMat * vec4(vertexPosition, 1.0);
 }

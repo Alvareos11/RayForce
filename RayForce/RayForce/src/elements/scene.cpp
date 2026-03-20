@@ -121,6 +121,9 @@ void Scene::Update() {
         /*
         // Pull new transform data from PhysX to Raylib
         entity->PhysicsUpdate();*/
+        
+        // Updates the matrx buffer
+        entity->UpdateMatrixRender(); // Combines the above two steps for efficiency
 
         // Update entity-specific logic
         entity->Update();
