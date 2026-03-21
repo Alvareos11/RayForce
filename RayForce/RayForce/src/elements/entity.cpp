@@ -101,7 +101,7 @@ void Entity::UpdateMatrixRender() {
         Window::renderManager->AddModelToRenderBuffer(model, renderMat);
         */
        
-        Window::renderManager->AddModelToRenderBuffer(model, *(Matrix*)&PxMat44(transform));
+        Window::renderManager->AddModelToRenderBuffer(model, transform);
     }
 }
 

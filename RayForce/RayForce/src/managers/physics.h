@@ -62,4 +62,7 @@ public:
 
     // Syncs PhysX Actor transforms back to Entity objects
     void UpdateEntities(PxScene* scene);
+
+    // Get the floats out of the trasnform
+    static void TransformToFloatArray(const PxTransform& transform, float* out);
 };

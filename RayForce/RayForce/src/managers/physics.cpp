@@ -217,6 +217,24 @@ void PhysicsManager::UnloadShape(PxGeometry* geometry) {
     }
 }
 
+
+/*
+    * Converts a PhysX transform into a float array format suitable for GPU instancing.
+    * The first 3 floats represent position (x, y, z), and the next 4 represent rotation as a quaternion (x, y, z, w).
+    * This format is compact and efficient for shader use when rendering multiple instances of the same model.
+    * @param transform: The PhysX transform to convert.
+    * @parm out: float pointer to the output
+*/
+void PhysicsManager::TransformToFloatArray(const PxTransform& transform, float* out) {
+    out[0] = transform.p.x; // Position X
+    out[1] = transform.p.y; // Position Y
+    out[2] = transform.p.z; // Position Z
+    out[3] = transform.q.x; // Rotation Quaternion X
+    out[4] = transform.q.y; // Rotation Quaternion Y
+    out[5] = transform.q.z; // Rotation Quaternion Z
+    out[6] = transform.q.w; // Rotation Quaternion W
+}
+
 // --- Main Engine Synchronization --- legacy usefull but slow
 
 #include "../elements/entity.h"
