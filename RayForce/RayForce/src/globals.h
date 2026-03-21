@@ -35,10 +35,6 @@ using namespace physx;
 #define MODELS_PATH RESOUCES_PATH "models/"
 #define SHADERS_PATH RESOUCES_PATH "shaders/"
 
-#define MATERIALS_LIST_PATH "resources/materials.list"
-#define MODELS_LIST_PATH "resources/models.list"
-
-
 // Logging Macros
 #define RF_LOG_ERROR(msg, ...) \
     TraceLog(LOG_ERROR, "[RayForce] [%s:%d]" msg, __FILE__, __LINE__, ##__VA_ARGS__)

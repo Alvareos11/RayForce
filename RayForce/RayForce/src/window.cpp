@@ -6,6 +6,7 @@ SceneManager* Window::sceneManager = nullptr;
 ModelManager* Window::modelManager = nullptr;
 PhysicsManager* Window::physicsManager = nullptr;
 RenderManager* Window::renderManager = nullptr;
+ShaderManager* Window::shaderManager = nullptr;
 bool Window::isPaused = false;
 Window* window = nullptr;
 
@@ -24,10 +25,10 @@ Window::Window(int _width, int _height, const std::string& title, unsigned int f
     SetConfigFlags(flags);
     SetTargetFPS(60);
 
-#if defined(_WIN32) || defined(_WIN64)
-    // 2. Attach the OS Hook to handle pausing during window drag/resize
-    AttachHook(GetWindowHandle(), &isPaused);
-#endif
+    #if defined(_WIN32) || defined(_WIN64)
+        // 2. Attach the OS Hook to handle pausing during window drag/resize
+        AttachHook(GetWindowHandle(), &isPaused);
+    #endif
 
     // 3. Camera Setup (Perspective View)
     camera = { 0 };
@@ -37,18 +38,34 @@ Window::Window(int _width, int _height, const std::string& title, unsigned int f
     camera.fovy = 45.0f;
     camera.projection = CAMERA_PERSPECTIVE;
 
-    // 4. Initialize Managers
+    // Initialize Managers, too many burecrats
     sceneManager = new SceneManager();
     modelManager = new ModelManager();
     physicsManager = new PhysicsManager();
     renderManager = new RenderManager();
+    shaderManager = new ShaderManager();
 
     Init(); // Load initial scene
 
     // Initial physics step to prime the simulation
     sceneManager->GetCurrentScene()->GetPhysicsScene()->simulate(1.f / 60.f);
+}
 
-    // 5. Main Game Loop
+Window::~Window() {
+    // Ordered cleanup of manager memory
+    if (renderManager) delete renderManager;
+    if (physicsManager) delete physicsManager;
+    if (sceneManager) delete sceneManager;
+    if (modelManager) delete modelManager;
+    if (shaderManager) delete shaderManager;
+
+    CloseWindow(); // Close Raylib context
+}
+
+// Main
+void Window::GameLoop(){
+
+    // Main Game Loop
     while (!WindowShouldClose()) {
         if (IsCursorHidden()) UpdateCamera(&camera, CAMERA_FREE);
 
@@ -67,15 +84,5 @@ Window::Window(int _width, int _height, const std::string& title, unsigned int f
             
             DrawFPS(10, 10);
         EndDrawing();
-    }
-}
-
-Window::~Window() {
-    // Ordered cleanup of manager memory
-    if (renderManager) delete renderManager;
-    if (physicsManager) delete physicsManager;
-    if (sceneManager) delete sceneManager;
-    if (modelManager) delete modelManager;
-
-    CloseWindow(); // Close Raylib context
+    };
 }

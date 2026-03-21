@@ -8,7 +8,7 @@
  */
 enum class MaterialID : uint16_t {
 #define MATERIAL_DEF(id, ...) id,
-#include MATERIALS_LIST_PATH
+#include "materials.list"
 #undef MATERIAL_DEF
 };
 
@@ -17,7 +17,7 @@ private:
     // Raw properties (Friction, Static Friction, Restitution) from the list
     const std::map<MaterialID, Vector3> materialsProperties = {
         #define MATERIAL_DEF(id, ...) { MaterialID::id, {__VA_ARGS__} },
-        #include MATERIALS_LIST_PATH
+        #include  "materials.list"
         #undef MATERIAL_DEF
     };
 

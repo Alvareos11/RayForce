@@ -3,18 +3,6 @@
 #include "window.h"
 
 ModelManager::ModelManager() {
-    // Loading shaders for instanced rendering (optimized for drawing many objects)
-    shdr = LoadShader((SHADERS_PATH + std::string("instancing.vs")).c_str(),
-        (SHADERS_PATH + std::string("basic.fs")).c_str());
-
-    if (shdr.id == 0) {
-        RF_LOG_ERROR("Shaders failed to load.");
-        return;
-    }
-
-    // Assigning shader locations for the MVP matrix and instance transforms
-    shdr.locs[SHADER_LOC_MATRIX_MVP] = GetShaderLocation(shdr, "mvp");
-    shdr.locs[SHADER_LOC_MATRIX_MODEL] = GetShaderLocationAttrib(shdr, "instanceTransform");
 }
 
 ModelManager::~ModelManager() {
@@ -22,7 +10,6 @@ ModelManager::~ModelManager() {
         UnloadModel(pair.first);
     }
     models.clear();
-    UnloadShader(shdr);
 }
 
 Model& ModelManager::GetModel(ModelID id) {
@@ -57,10 +44,7 @@ error:
 
 done:
     // Apply the instancing shader and reset default color to white for all materials
-    for (int i = 0; i < model.materialCount; i++) {
-        model.materials[i].maps[MATERIAL_MAP_DIFFUSE].color = WHITE;
-        model.materials[i].shader = shdr;
-    }
+    Window::shaderManager->AsingShader(modelShaders.at(id), model);
 
     RF_LOG_INFO("Loaded Model with ID %d", id);
 

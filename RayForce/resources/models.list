@@ -1,2 +1,2 @@
-MODEL_DEF(Cube, "Cube.glb", Basic)
-MODEL_DEF(DamagedHelmet, "DamagedHelmet.glb", Basic)
+MODEL_DEF(Cube, "Cube.glb", Basic, Custom)
+MODEL_DEF(DamagedHelmet, "DamagedHelmet.glb", Basic, Custom)

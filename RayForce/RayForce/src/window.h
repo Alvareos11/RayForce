@@ -6,6 +6,7 @@
 #include "managers/scenes.h"
 #include "managers/physics.h"
 #include "managers/render.h"
+#include "managers/shader.h"
 
 class Window {
 protected:
@@ -21,11 +22,15 @@ public:
     Window(int _width, int _height, const std::string& title, unsigned int flags);
     ~Window();
 
+    // Contains the main loop
+    void GameLoop();
+
     // Static Managers: Shared across all scenes and entities
     static SceneManager* sceneManager;
     static ModelManager* modelManager;
     static PhysicsManager* physicsManager;
     static RenderManager* renderManager;
+    static ShaderManager* shaderManager;
 
     // Global state for handling OS-level interruptions (resizing/moving)
     static bool isPaused;

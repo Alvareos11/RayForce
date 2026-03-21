@@ -140,7 +140,8 @@ void Scene::Update() {
  * @return Raw pointer to the internal PhysX scene.
  */
 PxScene* Scene::GetPhysicsScene() {
-    return physicsScene;
+    if (physicsScene) return physicsScene;
+    return nullptr;
 }
 
 /**

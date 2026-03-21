@@ -66,7 +66,7 @@ else()
     endif()
     if(NOT PHYSX_PATH)
         if(WIN32)
-            set(PHYSX_PATH "C:/vcpkg/packages/physx_x64-windows")
+            set(PHYSX_PATH "C:/vcpkg/packages/physx_x64-windows/")
         else()
             set(PHYSX_PATH "/usr/local/physx") # Ruta genérica para Linux/Mac
         endif()

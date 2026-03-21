@@ -5,3 +5,4 @@
 #include "elements/scene.h"
 #include "elements/entity.h"
 #include "managers/physics.h"
+#include "managers/shader.h"
