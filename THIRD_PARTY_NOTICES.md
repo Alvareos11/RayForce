@@ -1,4 +1,4 @@
-THIRD-PARTY NOTICES AND INFORMATION
+gitTHIRD-PARTY NOTICES AND INFORMATION
 
 This project, RayForce, incorporates third-party software components. 
 The following notices are provided for compliance with the licenses 
