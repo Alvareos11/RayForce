@@ -37,10 +37,26 @@ PhysicsManager::PhysicsManager() {
         SceneDesc->cudaContextManager = CudaContextManager;
         SceneDesc->flags |= PxSceneFlag::eENABLE_GPU_DYNAMICS;
         SceneDesc->broadPhaseType = PxBroadPhaseType::eGPU;
-        RF_LOG_INFO("GPU Acceleration initialized successfully via CUDA.");
-    }
-    else {
-        RF_LOG_WARN("CUDA not detected.Falling back to CPU simulation.");
+
+        
+        // Pool config
+        SceneDesc->gpuDynamicsConfig.heapCapacity = 128 * 1024 * 1024; // 128MB
+        
+        // Temporal buffer
+        SceneDesc->gpuDynamicsConfig.tempBufferCapacity = 64 * 1024 * 1024; // 64MB
+
+        // Pach limit
+        SceneDesc->gpuDynamicsConfig.maxRigidPatchCount = 1024 * 800; 
+        
+        // Max conatac capcity
+        SceneDesc->gpuDynamicsConfig.maxRigidContactCount = 1024 * 1024 * 2;
+
+        // Max colliosn extac
+        SceneDesc->gpuDynamicsConfig.collisionStackSize = 128 * 1024 * 1024; // 128MB
+
+        RF_LOG_INFO("GPU Accelertion eneable");
+    }   else {
+        RF_LOG_WARN("CUDA not detected. Falling back to CPU simulation.");
     }
 #endif
 

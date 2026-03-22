@@ -28,7 +28,7 @@
 
 using namespace physx;
 
-#define DONT_USE_CUDA // Define this to disable CUDA support if you don't have an NVIDIA GPU or want to avoid GPU-specific code paths
+//#define DONT_USE_CUDA // Define this to disable CUDA support if you don't have an NVIDIA GPU or want to avoid GPU-specific code paths
 
 // File paths
 #define RESOUCES_PATH "resources/"
