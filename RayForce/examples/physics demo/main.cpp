@@ -3,7 +3,7 @@
 
 int main() {
     // Window constructor: Initializes the Raylib context and sets hardware flags.
-    window = new Window(800, 600, "Brick Battle", FLAG_WINDOW_RESIZABLE);
+    window = new Window(800, 600, "Collison", FLAG_WINDOW_RESIZABLE);
     window->GameLoop();
 }
 
