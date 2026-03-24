@@ -16,8 +16,8 @@ out vec4 finalColor;
 
 // NOTE: Add your custom variables here
 
-void main()
-{
+void main() {   
+
     // Texel color fetching from texture sampler
     vec4 texelColor = texture(texture0, fragTexCoord);
 

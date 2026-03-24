@@ -4,6 +4,12 @@
 
 class RenderManager {
 private:
+    // Contains the Vbo size and ID
+    struct Vbo {
+        unsigned int VboId = 0;
+        int VboSize = 0;
+    };
+
     /**
      * The Render Buffer
      * Maps a Model pointer to a list of transformation matrices.
@@ -11,6 +17,14 @@ private:
      */
     std::unordered_map<Model*, std::vector<PxTransform>> renderBuffer;
 
+    /**
+     * The Instances VBO ID buffer
+     * Stores the direcicon of the buffer
+     */
+    std::unordered_map<Mesh*, Vbo> instancesVboBuffer;
+    
+    // Prepare instance data buffer (instanceTransform) for instancing draw calls
+    const int objectStride = 7 * sizeof(float);
 public:
     RenderManager();
     ~RenderManager();
@@ -25,5 +39,5 @@ public:
     void RenderBuffer();
 
     // Render the intance mesh;
-    void RenderManager::DrawMeshInstanced(Mesh mesh, Material material, const PxTransform* transforms, int instances);
+    void DrawMeshInstanced(Mesh* mesh, Material material, const PxTransform* transforms, int instances);
 };

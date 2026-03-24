@@ -8,8 +8,8 @@ layout (location = 2) in vec3 vertexNormal;
 
 //in mat4 instanceTransform;
 
-layout (location = 10) in vec3 instancePos;  // 3 floats
-layout (location = 11) in vec4 instanceQuat; // 4 floats
+layout (location = 11) in vec3 instancePos;  // 3 floats
+layout (location = 10) in vec4 instanceQuat; // 4 floats
 
 // Uniforms
 uniform mat4 mvp;
@@ -19,6 +19,7 @@ out vec3 fragPosition;
 out vec2 fragTexCoord;
 out vec4 fragColor;
 out vec3 fragNormal;
+out float visibility;
 //out vec4 fragTangent; // Para el Normal Map del casco
 
 // Just copied it, but its likely to work
@@ -26,8 +27,7 @@ vec3 rotate_vector(vec3 v, vec4 q) {
     return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v);
 }
 
-void main()
-{
+void main() {
     // Old Shit of transposing 
     //mat4 modelMat = transpose(instanceTransform);
     //modelMat[3][3] = 1.0;
@@ -52,11 +52,11 @@ void main()
     gl_Position = mvp * modelMat * vec4(vertexPosition, 1.0);
     */
 
-    // Calculate the vertex
-    vec3 rotatedVertex = rotate_vector(vertexPosition, instanceQuat);
-
     // Calculate the normal
     vec3 rotatedNormal = rotate_vector(vertexNormal, instanceQuat);
+
+    // Calculate the vertex
+    vec3 rotatedVertex = rotate_vector(vertexPosition, instanceQuat);
 
     // Calculate the final position
     vec3 worldPos = instancePos + rotatedVertex;
@@ -67,7 +67,8 @@ void main()
     fragNormal = normalize(rotatedNormal);
 
     fragColor = vec4(1.0, 1.0, 1.0, 1.0);
+
     // Finally, the mail stamp
-    gl_Position = mvp * vec4(worldPos, 1.0);
+    gl_Position = mvp * vec4(worldPos, 1.0 );
 }
 

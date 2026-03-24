@@ -5,8 +5,22 @@ RenderManager::RenderManager() {
 }
 
 RenderManager::~RenderManager() {
+    for (auto& VboId : instancesVboBuffer){
+        rlUnloadVertexBuffer(VboId.second.VboId);
+    }
+
     ClearRenderBuffer();
     renderBuffer.clear();
+}
+
+/**
+ * ClearRenderBuffer
+ * Resets the matrix lists for all models to prepare for the next frame.
+ */
+void RenderManager::ClearRenderBuffer() {
+    for (auto& pair : renderBuffer) {
+        pair.second.clear();
+    }
 }
 
 /**
@@ -23,16 +37,6 @@ void RenderManager::AddModelToRenderBuffer(Model* model, PxTransform& t) {
 
     // emplace_back avoids extra copies by constructing the matrix directly in the vector
     renderBuffer[model].emplace_back(t);
-}
-
-/**
- * ClearRenderBuffer
- * Resets the matrix lists for all models to prepare for the next frame.
- */
-void RenderManager::ClearRenderBuffer() {
-    for (auto& pair : renderBuffer) {
-        pair.second.clear();
-    }
 }
 
 /**
@@ -56,7 +60,7 @@ void RenderManager::RenderBuffer() {
 
             // Raylib calls the internal OpenGL/Vulkan instancing commands here
             DrawMeshInstanced(
-                model->meshes[i],
+                &model->meshes[i],
                 model->materials[materialIndex],
                 dataPtr,
                 instanceCount
@@ -69,6 +73,7 @@ void RenderManager::RenderBuffer() {
 }
 
 
+/*
 // DONT THIS FUNCTION TOUCH IT USES BALCK MAGIC
 /*
     * function for mesh instancing using transforms
@@ -77,13 +82,9 @@ void RenderManager::RenderBuffer() {
     * @param t: the ptr of the transform 
     * @param count: the number of instances to be drawn
 */
-#include "physics.h"
-void RenderManager::DrawMeshInstanced(Mesh mesh, Material material, const PxTransform* transforms, int instances) {
+void RenderManager::DrawMeshInstanced(Mesh *mesh, Material material, const PxTransform* transforms, int instances) {
     // Modified raylib 6.0 function to accept an array of PhysX transforms instead of raylib matrices
 #if defined(GRAPHICS_API_OPENGL_33) || defined(GRAPHICS_API_OPENGL_ES2)
-    // Instancing required variables
-    float *instanceTransform = NULL;
-    unsigned int instancesVboId = 0;
 
     // Bind shader program
     rlEnableShader(material.shader.id);
@@ -130,11 +131,11 @@ void RenderManager::DrawMeshInstanced(Mesh mesh, Material material, const PxTran
     if (material.shader.locs[SHADER_LOC_MATRIX_VIEW] != -1) rlSetUniformMatrix(material.shader.locs[SHADER_LOC_MATRIX_VIEW], matView);
     if (material.shader.locs[SHADER_LOC_MATRIX_PROJECTION] != -1) rlSetUniformMatrix(material.shader.locs[SHADER_LOC_MATRIX_PROJECTION], matProjection);
 
-    // Prepare instance data buffer (instanceTransform) for instancing draw calls
-    const int stride = 7 * sizeof(float);
-    // Create instances buffer
-    instanceTransform = (float*)RL_CALLOC(instances, stride); // 7 floats per instance (3 for position, 4 for rotation quaternion)
 
+    // Create instances buffer
+    //instanceTransform = (float*)RL_CALLOC(instances, stride); // 7 floats per instance (3 for position, 4 for rotation quaternion)
+
+    /* OLD code
     // Fill buffer with instances transformations as float[7] arrays
     for (unsigned int i = 0; i < instances; i++) {
         // Calculate the destination pointer for the current instance's transform in the buffer
@@ -143,30 +144,55 @@ void RenderManager::DrawMeshInstanced(Mesh mesh, Material material, const PxTran
         // NOTE: This function is smort, if you don`t allocate enough memory to this little boy else it will cry very loudly
         PhysicsManager::TransformToFloatArray(transforms[i], dest);
     }
+    */
+    // Copy the trasnforms to the buffer of floats
+
     // Enable mesh VAO to attach new buffer
-    rlEnableVertexArray(mesh.vaoId);
-    
-    // This could alternatively use a static VBO and either glMapBuffer() or glBufferSubData()
-    // It isn't clear which would be reliably faster in all cases and on all platforms,
-    // anecdotally glMapBuffer() seems quite slow (syncs) while glBufferSubData() seems
-    // no faster, since all the transform matrices are transferred anyway
-    instancesVboId = rlLoadVertexBuffer(instanceTransform, instances*stride, false);
+    rlEnableVertexArray(mesh->vaoId);
+
+    // Dynamic buffering
+    auto it = instancesVboBuffer.find(mesh);
+    unsigned int instancesVboId = 0;
+    const int size = instances * objectStride;
+
+    if (it != instancesVboBuffer.end()) {
+        Vbo& temp = it->second;
+        instancesVboId = temp.VboId; 
+        // Check if is neded to resize the Vertex buffer
+        if (instances != temp.VboSize ) {
+            rlUnloadVertexBuffer(instancesVboId);
+            temp.VboId = instancesVboId = rlLoadVertexBuffer((float*)transforms, size, true);
+            temp.VboSize = instances;
+        } else {
+            // just update the data
+            rlUpdateVertexBuffer(temp.VboId, (float*)transforms, size, 0);
+        }
+    } else {
+
+        // This could alternatively use a static VBO and either glMapBuffer() or glBufferSubData()
+        // It isn't clear which would be reliably faster in all cases and on all platforms,
+        // anecdotally glMapBuffer() seems quite slow (syncs) while glBufferSubData() seems
+        // no faster, since all the transform matrices are transferred anyway
+        instancesVboId = rlLoadVertexBuffer((float*)transforms, size, true);
+        // Save the VBo pos
+        instancesVboBuffer[mesh] = {instancesVboId, size};
+    }
 
     // Instances transformations are in locations 10 and 11
     unsigned int loc = 10;
 
     if (loc != -1) {
-        // Position (vec3)
+        // Rotation (vec4)
+        // 4 floats, 'objectStride', starts at 0 bytes
         rlEnableVertexAttribute(loc);
-        // 3 floats, 'stride', starts at byte 0
-        rlSetVertexAttribute(loc, 3, RL_FLOAT, 0, stride, (const void*)(uintptr_t)(0)); 
+        rlSetVertexAttribute(loc, 4, RL_FLOAT, 0, objectStride, (const void*)(uintptr_t)(0)); 
         rlSetVertexAttributeDivisor(loc, 1);
 
-        // Rotation (vec4)
+        // Position (vec3)
         rlEnableVertexAttribute(loc + 1); 
-        // 4 floats, 'stride', after 3 floats of the position (offset = 12 bytes)
-        const unsigned int offset = 3*sizeof(float); 
-        rlSetVertexAttribute(loc + 1, 4, RL_FLOAT, 0, stride, (const void*)(uintptr_t)offset);
+        // 3 floats, 'objectStride', after 4 floats of the position (offset = 12 bytes)
+        const unsigned int offset = 4 * sizeof(float); 
+        rlSetVertexAttribute(loc + 1, 3, RL_FLOAT, 0, objectStride, (const void*)(uintptr_t)offset);
         rlSetVertexAttributeDivisor(loc + 1, 1);
     }
 
@@ -201,22 +227,22 @@ void RenderManager::DrawMeshInstanced(Mesh mesh, Material material, const PxTran
 
     // Try binding vertex array objects (VAO)
     // or use VBOs if not possible
-    if (!rlEnableVertexArray(mesh.vaoId))
+    if (!rlEnableVertexArray(mesh->vaoId))
     {
         // Bind mesh VBO data: vertex position (shader-location = 0)
-        rlEnableVertexBuffer(mesh.vboId[RL_DEFAULT_SHADER_ATTRIB_LOCATION_POSITION]);
+        rlEnableVertexBuffer(mesh->vboId[RL_DEFAULT_SHADER_ATTRIB_LOCATION_POSITION]);
         rlSetVertexAttribute(material.shader.locs[SHADER_LOC_VERTEX_POSITION], 3, RL_FLOAT, 0, 0, 0);
         rlEnableVertexAttribute(material.shader.locs[SHADER_LOC_VERTEX_POSITION]);
 
         // Bind mesh VBO data: vertex texcoords (shader-location = 1)
-        rlEnableVertexBuffer(mesh.vboId[RL_DEFAULT_SHADER_ATTRIB_LOCATION_TEXCOORD]);
+        rlEnableVertexBuffer(mesh->vboId[RL_DEFAULT_SHADER_ATTRIB_LOCATION_TEXCOORD]);
         rlSetVertexAttribute(material.shader.locs[SHADER_LOC_VERTEX_TEXCOORD01], 2, RL_FLOAT, 0, 0, 0);
         rlEnableVertexAttribute(material.shader.locs[SHADER_LOC_VERTEX_TEXCOORD01]);
 
         if (material.shader.locs[SHADER_LOC_VERTEX_NORMAL] != -1)
         {
             // Bind mesh VBO data: vertex normals (shader-location = 2)
-            rlEnableVertexBuffer(mesh.vboId[RL_DEFAULT_SHADER_ATTRIB_LOCATION_NORMAL]);
+            rlEnableVertexBuffer(mesh->vboId[RL_DEFAULT_SHADER_ATTRIB_LOCATION_NORMAL]);
             rlSetVertexAttribute(material.shader.locs[SHADER_LOC_VERTEX_NORMAL], 3, RL_FLOAT, 0, 0, 0);
             rlEnableVertexAttribute(material.shader.locs[SHADER_LOC_VERTEX_NORMAL]);
         }
@@ -224,9 +250,9 @@ void RenderManager::DrawMeshInstanced(Mesh mesh, Material material, const PxTran
         // Bind mesh VBO data: vertex colors (shader-location = 3, if available)
         if (material.shader.locs[SHADER_LOC_VERTEX_COLOR] != -1)
         {
-            if (mesh.vboId[RL_DEFAULT_SHADER_ATTRIB_LOCATION_COLOR] != 0)
+            if (mesh->vboId[RL_DEFAULT_SHADER_ATTRIB_LOCATION_COLOR] != 0)
             {
-                rlEnableVertexBuffer(mesh.vboId[RL_DEFAULT_SHADER_ATTRIB_LOCATION_COLOR]);
+                rlEnableVertexBuffer(mesh->vboId[RL_DEFAULT_SHADER_ATTRIB_LOCATION_COLOR]);
                 rlSetVertexAttribute(material.shader.locs[SHADER_LOC_VERTEX_COLOR], 4, RL_UNSIGNED_BYTE, 1, 0, 0);
                 rlEnableVertexAttribute(material.shader.locs[SHADER_LOC_VERTEX_COLOR]);
             }
@@ -243,7 +269,7 @@ void RenderManager::DrawMeshInstanced(Mesh mesh, Material material, const PxTran
         // Bind mesh VBO data: vertex tangents (shader-location = 4, if available)
         if (material.shader.locs[SHADER_LOC_VERTEX_TANGENT] != -1)
         {
-            rlEnableVertexBuffer(mesh.vboId[RL_DEFAULT_SHADER_ATTRIB_LOCATION_TANGENT]);
+            rlEnableVertexBuffer(mesh->vboId[RL_DEFAULT_SHADER_ATTRIB_LOCATION_TANGENT]);
             rlSetVertexAttribute(material.shader.locs[SHADER_LOC_VERTEX_TANGENT], 4, RL_FLOAT, 0, 0, 0);
             rlEnableVertexAttribute(material.shader.locs[SHADER_LOC_VERTEX_TANGENT]);
         }
@@ -251,7 +277,7 @@ void RenderManager::DrawMeshInstanced(Mesh mesh, Material material, const PxTran
         // Bind mesh VBO data: vertex texcoords2 (shader-location = 5, if available)
         if (material.shader.locs[SHADER_LOC_VERTEX_TEXCOORD02] != -1)
         {
-            rlEnableVertexBuffer(mesh.vboId[RL_DEFAULT_SHADER_ATTRIB_LOCATION_TEXCOORD2]);
+            rlEnableVertexBuffer(mesh->vboId[RL_DEFAULT_SHADER_ATTRIB_LOCATION_TEXCOORD2]);
             rlSetVertexAttribute(material.shader.locs[SHADER_LOC_VERTEX_TEXCOORD02], 2, RL_FLOAT, 0, 0, 0);
             rlEnableVertexAttribute(material.shader.locs[SHADER_LOC_VERTEX_TEXCOORD02]);
         }
@@ -260,7 +286,7 @@ void RenderManager::DrawMeshInstanced(Mesh mesh, Material material, const PxTran
         // Bind mesh VBO data: vertex bone ids (shader-location = 6, if available)
         if (material.shader.locs[SHADER_LOC_VERTEX_BONEIDS] != -1)
         {
-            rlEnableVertexBuffer(mesh.vboId[RL_DEFAULT_SHADER_ATTRIB_LOCATION_BONEINDICES]);
+            rlEnableVertexBuffer(mesh->vboId[RL_DEFAULT_SHADER_ATTRIB_LOCATION_BONEINDICES]);
             rlSetVertexAttribute(material.shader.locs[SHADER_LOC_VERTEX_BONEIDS], 4, RL_UNSIGNED_BYTE, 0, 0, 0);
             rlEnableVertexAttribute(material.shader.locs[SHADER_LOC_VERTEX_BONEIDS]);
         }
@@ -268,13 +294,13 @@ void RenderManager::DrawMeshInstanced(Mesh mesh, Material material, const PxTran
         // Bind mesh VBO data: vertex bone weights (shader-location = 7, if available)
         if (material.shader.locs[SHADER_LOC_VERTEX_BONEWEIGHTS] != -1)
         {
-            rlEnableVertexBuffer(mesh.vboId[RL_DEFAULT_SHADER_ATTRIB_LOCATION_BONEWEIGHTS]);
+            rlEnableVertexBuffer(mesh->vboId[RL_DEFAULT_SHADER_ATTRIB_LOCATION_BONEWEIGHTS]);
             rlSetVertexAttribute(material.shader.locs[SHADER_LOC_VERTEX_BONEWEIGHTS], 4, RL_FLOAT, 0, 0, 0);
             rlEnableVertexAttribute(material.shader.locs[SHADER_LOC_VERTEX_BONEWEIGHTS]);
         }
 #endif
 
-        if (mesh.indices != NULL) rlEnableVertexBufferElement(mesh.vboId[RL_DEFAULT_SHADER_ATTRIB_LOCATION_INDICES]);
+        if (mesh->indices != NULL) rlEnableVertexBufferElement(mesh->vboId[RL_DEFAULT_SHADER_ATTRIB_LOCATION_INDICES]);
     }
 
     int eyeCount = 1;
@@ -296,8 +322,8 @@ void RenderManager::DrawMeshInstanced(Mesh mesh, Material material, const PxTran
         rlSetUniformMatrix(material.shader.locs[SHADER_LOC_MATRIX_MVP], matModelViewProjection);
 
         // Draw mesh instanced
-        if (mesh.indices != NULL) rlDrawVertexArrayElementsInstanced(0, mesh.triangleCount*3, 0, instances);
-        else rlDrawVertexArrayInstanced(0, mesh.vertexCount, instances);
+        if (mesh->indices != NULL) rlDrawVertexArrayElementsInstanced(0, mesh->triangleCount*3, 0, instances);
+        else rlDrawVertexArrayInstanced(0, mesh->vertexCount, instances);
     }
 
     // Unbind all bound texture maps
@@ -323,9 +349,5 @@ void RenderManager::DrawMeshInstanced(Mesh mesh, Material material, const PxTran
 
     // Disable shader program
     rlDisableShader();
-
-    // Remove instance transforms buffer
-    rlUnloadVertexBuffer(instancesVboId);
-    RL_FREE(instanceTransform);
 #endif
 }
