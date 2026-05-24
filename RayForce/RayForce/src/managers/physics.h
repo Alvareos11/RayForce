@@ -2,6 +2,9 @@
 
 #include "globals.h"
 
+// Forward declaration to avoid circular dependency with model.h
+enum class ModelID : uint16_t;
+
 /**
  * MaterialID Enum
  * Generated from 'materials.list' to define physical properties.
@@ -23,7 +26,7 @@ private:
 
     // Cache to prevent redundant PhysX object creation
     std::unordered_map<MaterialID, PxMaterial*> loadedMaterials;
-    std::unordered_map<uint16_t, PxGeometry*> loadedGeometries;
+    std::unordered_map<ModelID, PxGeometry*> loadedGeometries;
     std::unordered_map<PxGeometry*, PxShape*> loadedShapes;
 
 public:
@@ -52,8 +55,8 @@ public:
     void UnloadMaterial(MaterialID id);
 
     // Collision geometry (Box, Sphere, Convex Mesh)
-    PxGeometry* CreateGeometry(uint16_t _modelID);
-    void UnloadGeometry(uint16_t _modelID);
+    PxGeometry* CreateGeometry(ModelID _modelID);
+    void UnloadGeometry(ModelID _modelID);
     void DeleteGeometry(PxGeometry* geo);
 
     // Shapes combine Geometry + Material for Actors

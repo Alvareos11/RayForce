@@ -1,14 +1,11 @@
 cmake_minimum_required(VERSION 3.15...4.0)
 project(RayForce)
 
-# 0. FIX PARA RAYLIB Y POLÍTICAS ANTIGUAS
-# Esto soluciona el error: "Compatibility with CMake < 3.5 has been removed"
+# 0. CONFIGURACIÓN BÁSICA Y COMPILADORES
 set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 if(POLICY CMP0048)
-  cmake_policy(SET CMP0048 NEW) # Manejo de versiones en project()
+  cmake_policy(SET CMP0048 NEW) 
 endif()
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin")
 
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
@@ -17,7 +14,6 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Flags de compilación
 if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /permissive /W0")
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)
@@ -26,41 +22,28 @@ else()
 endif()
 
 # ---------------------------------------------------------
-# 1. AUTO-INSTALACIÓN DE RAYLIB (FetchContent)
+# 1. DEPENDENCIA: RAYLIB (FetchContent)
 # ---------------------------------------------------------
 find_package(raylib QUIET)
-
-if(raylib_FOUND)
-    target_link_libraries(physics_demo PRIVATE raylib)
-else()
+if(NOT raylib_FOUND)
     include(FetchContent)
     set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
-
     FetchContent_Declare(
-    raylib
-    GIT_REPOSITORY https://github.com/raysan5/raylib.git
-    GIT_TAG        5.0
+        raylib
+        GIT_REPOSITORY https://github.com/raysan5/raylib.git
+        GIT_TAG        5.0
     )
     FetchContent_MakeAvailable(raylib)
 endif()
 
 # ---------------------------------------------------------
-# 2. CONFIGURACIÓN DE PHYSX (OMNIVERSE 5.5 / VCPKG / MANUAL)
+# 2. DEPENDENCIA: PHYSX
 # ---------------------------------------------------------
-
-# Fallback para PhysX estándar o manual
+set(PHYSX_LIBRARIES "")
 find_package(physx CONFIG QUIET)
 if(physx_FOUND)
-    message(STATUS "PhysX Estándar detectado.")
-    target_link_libraries(RayForceLib PRIVATE 
-        physx::PhysX 
-        physx::PhysXCommon 
-        physx::PhysXFoundation 
-        physx::PhysXExtensions
-        $<$<PLATFORM_ID:Linux>:pthread m dl>
-    )
+    set(PHYSX_LIBRARIES physx::PhysX physx::PhysXCommon physx::PhysXFoundation physx::PhysXExtensions)
 else()
-    message(STATUS "Buscando PhysX de forma manual...")
     if(NOT PHYSX_PATH AND DEFINED ENV{PHYSX_PATH})
         set(PHYSX_PATH "$ENV{PHYSX_PATH}")
     endif()
@@ -68,18 +51,14 @@ else()
         if(WIN32)
             set(PHYSX_PATH "C:/vcpkg/packages/physx_x64-windows/")
         else()
-            set(PHYSX_PATH "/usr/local/physx") # Ruta genérica para Linux/Mac
+            set(PHYSX_PATH "/usr/local/physx") 
         endif()
     endif()
-    
+  
     set(PHYSX_INCLUDE_DIR "${PHYSX_PATH}/include/physx")
-
     if(NOT WIN32)
-        # Configuración para Linux (WSL)
         set(P_SUFFIX "_static_64.a")
         set(P_PREFIX "lib")
-
-        # ORDEN CRÍTICO: De más dependiente a menos dependiente
         set(PHYSX_LIBRARIES 
             "${PHYSX_PATH}/lib/${P_PREFIX}PhysXExtensions${P_SUFFIX}"
             "${PHYSX_PATH}/lib/${P_PREFIX}PhysXCooking${P_SUFFIX}"
@@ -87,13 +66,10 @@ else()
             "${PHYSX_PATH}/lib/${P_PREFIX}PhysXCommon${P_SUFFIX}"
             "${PHYSX_PATH}/lib/${P_PREFIX}PhysXFoundation${P_SUFFIX}"
             "${PHYSX_PATH}/lib/${P_PREFIX}PhysXPvdSDK${P_SUFFIX}"
-            # No incluimos PhysXTask porque ya está dentro de Foundation/Common en Linux
         )
     else()
-        # Configuración para Windows
         set(P_CORE_SUFFIX "_64.lib")
         set(P_STATIC_SUFFIX "_static_64.lib")
-
         set(PHYSX_LIBRARIES 
             "${PHYSX_PATH}/lib/PhysX${P_CORE_SUFFIX}" 
             "${PHYSX_PATH}/lib/PhysXCommon${P_CORE_SUFFIX}"
@@ -104,16 +80,14 @@ else()
             "${PHYSX_PATH}/lib/PhysXTask${P_STATIC_SUFFIX}"
         )
     endif()
-
 endif()
 
 # ---------------------------------------------------------
-# 3. RECOLECCIÓN DE FUENTES
+# 3. COMPILAR LA LIBRERÍA CENTRAL (RayForceLib)
 # ---------------------------------------------------------
 file(GLOB_RECURSE ENGINE_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/RayForce/src/*.cpp")
-
-# Obtener directorios para los includes de forma recursiva (Brute Force)
 file(GLOB_RECURSE ALL_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/RayForce/src/*.h")
+
 set(MOTOR_DIRS "")
 foreach(_header ${ALL_HEADERS})
     get_filename_component(_dir ${_header} DIRECTORY)
@@ -121,9 +95,7 @@ foreach(_header ${ALL_HEADERS})
 endforeach()
 list(REMOVE_DUPLICATES MOTOR_DIRS)
 
-# ---------------------------------------------------------
-# 4. LIBRERÍA CORE
-# ---------------------------------------------------------
+# Creamos la librería estática enlazable
 add_library(RayForceLib STATIC ${ENGINE_SOURCES})
 target_link_libraries(RayForceLib PUBLIC raylib ${PHYSX_LIBRARIES})
 
@@ -131,41 +103,30 @@ target_include_directories(RayForceLib PUBLIC
     ${MOTOR_DIRS}
     "${CMAKE_CURRENT_SOURCE_DIR}/RayForce"
     "${CMAKE_CURRENT_SOURCE_DIR}/RayForce/src"
-    "${CMAKE_CURRENT_SOURCE_DIR}"             # Para #include "resources/..."
-    "${CMAKE_CURRENT_SOURCE_DIR}/resources"   # Para #include "materials.list"
-    "${PHYSX_INCLUDE_DIR}"                     # Para includes de PhysX
+    "${CMAKE_CURRENT_SOURCE_DIR}"             
+    "${CMAKE_CURRENT_SOURCE_DIR}/resources"   
+)
+if(PHYSX_INCLUDE_DIR)
+    target_include_directories(RayForceLib PUBLIC "${PHYSX_INCLUDE_DIR}")
+endif()
+
+# Guardamos el binario .lib / .a resultante en la carpeta raíz /bin
+set_target_properties(RayForceLib PROPERTIES
+    ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/bin"
 )
 
 # ---------------------------------------------------------
-# 5. EJEMPLOS
+# 4. INCLUSIÓN AUTOMÁTICA DE SUB-CMAKES DE EJEMPLOS
 # ---------------------------------------------------------
-file(GLOB EXAMPLE_DIRS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}/examples" "examples/*")
+# Escanea de forma recursiva buscando archivos CMakeLists.txt dentro de la carpeta 'examples'
+file(GLOB_RECURSE SUB_CMAKES "${CMAKE_CURRENT_SOURCE_DIR}/examples/*CMakeLists.txt")
 
-set(RESOURCE_SRC "${CMAKE_CURRENT_SOURCE_DIR}/resources")
-set(RESOURCE_DST "$<TARGET_FILE_DIR:physics_demo>/resources")
-
-foreach(DIR_NAME ${EXAMPLE_DIRS})
-    set(DIR "${CMAKE_CURRENT_SOURCE_DIR}/examples/${DIR_NAME}")
-    if(IS_DIRECTORY ${DIR})
-        string(REPLACE " " "_" SAFE_NAME ${DIR_NAME})
-        file(GLOB_RECURSE EXAMPLE_SOURCES "${DIR}/*.cpp")
-        
-        if(EXAMPLE_SOURCES)
-            add_executable(${SAFE_NAME} ${EXAMPLE_SOURCES})
-            
-            set(SYSTEM_LIBS "")
-            if(NOT MSVC)
-                set(SYSTEM_LIBS m pthread dl rt GL X11)
-            endif()
-    
-            target_link_libraries(${SAFE_NAME} PRIVATE RayForceLib ${SYSTEM_LIBS})
-        endif()
+foreach(SUB_CMAKE ${SUB_CMAKES})
+    get_filename_component(SUB_DIR "${SUB_CMAKE}" DIRECTORY)
+    # Evita que se incluya a sí mismo si accidentalmente encuentra un archivo fantasma
+    if(NOT "${SUB_DIR}" STREQUAL "${CMAKE_CURRENT_SOURCE_DIR}")
+        # Calculamos la ruta relativa para estructurar correctamente la carpeta build intermedia
+        file(RELATIVE_PATH REL_PATH "${CMAKE_CURRENT_SOURCE_DIR}" "${SUB_DIR}")
+        add_subdirectory("${SUB_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/${REL_PATH}")
     endif()
 endforeach()
-
-add_custom_command(TARGET physics_demo POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${RESOURCE_SRC}"
-        "${RESOURCE_DST}"
-    COMMENT "Copiando recursos a la carpeta de salida..."
-)

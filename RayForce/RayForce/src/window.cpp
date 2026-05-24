@@ -47,8 +47,13 @@ Window::Window(int _width, int _height, const std::string& title, unsigned int f
 
     Init(); // Load initial scene
 
-    // Initial physics step to prime the simulation
-    sceneManager->GetCurrentScene()->GetPhysicsScene()->simulate(1.f / 60.f);
+    // Initial physics step to prime the simulation only if a scene was loaded.
+    if (sceneManager->GetCurrentScene()) {
+        PxScene* initialScene = sceneManager->GetCurrentScene()->GetPhysicsScene();
+        if (initialScene) {
+            initialScene->simulate(1.f / 60.f);
+        }
+    }
 }
 
 Window::~Window() {
@@ -60,6 +65,19 @@ Window::~Window() {
     if (shaderManager) delete shaderManager;
 
     CloseWindow(); // Close Raylib context
+}
+
+// Protected lifecycle methods
+void Window::Init() {
+    // Override in derived classes or examples to customize initialization
+}
+
+void Window::Update() {
+    // Override in derived classes or examples to customize update logic
+}
+
+void Window::Render() {
+    // Override in derived classes or examples to customize render logic
 }
 
 // Main

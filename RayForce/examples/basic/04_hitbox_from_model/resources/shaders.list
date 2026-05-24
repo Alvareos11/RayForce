@@ -1,0 +1,1 @@
+SHADER_DEF(Custom, "basic.vs", "basic.fs")

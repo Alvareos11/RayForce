@@ -139,11 +139,11 @@ void PhysicsManager::UnloadMaterial(MaterialID id) {
 
 // --- Geometry & Mesh Cooking ---
 
-PxGeometry* PhysicsManager::CreateGeometry(uint16_t _modelID) {
+PxGeometry* PhysicsManager::CreateGeometry(ModelID _modelID) {
     auto it = loadedGeometries.find(_modelID);
     if (it != loadedGeometries.end()) return it->second;
 
-    Model* model = &Window::modelManager->GetModel((ModelID)_modelID);
+    Model* model = &Window::modelManager->GetModel(_modelID);
     if (!model || model->meshCount == 0) return nullptr;
 
     // Collect and unify vertex data from all sub-meshes for cooking
@@ -181,7 +181,7 @@ PxGeometry* PhysicsManager::CreateGeometry(uint16_t _modelID) {
     return geometry;
 }
 
-void PhysicsManager::UnloadGeometry(uint16_t _modelID) {
+void PhysicsManager::UnloadGeometry(ModelID _modelID) {
     auto it = loadedGeometries.find(_modelID);
     if (it != loadedGeometries.end()) {
         DeleteGeometry(it->second);
